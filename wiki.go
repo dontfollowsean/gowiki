@@ -16,7 +16,7 @@ type Page struct {
 	Body  []byte
 }
 
-var templates = template.Must(template.ParseFiles("templates/edit.html", "templates/view.html"))
+var templates = template.Must(template.ParseFiles("templates/edit.html", "templates/view.html", "templates/home.html", "templates/new.html"))
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
 
 func (p *Page) save() error {
@@ -69,8 +69,39 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("save: %s\n", p.Title)
 }
 
+func createHandler(w http.ResponseWriter, r *http.Request) {
+	body := r.FormValue("body")
+	title := r.FormValue("title")
+	// fmt.Println()
+	p := &Page{Title: title, Body: []byte(body)}
+	saveErr := p.save()
+	http.Redirect(w, r, "/view/"+title, http.StatusFound)
+	if saveErr != nil {
+		fmt.Printf("Create Failed: %s\n", saveErr.Error())
+		http.Error(w, saveErr.Error(), http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("save: %s\n", p.Title)
+}
+
+func newHandler(w http.ResponseWriter, r *http.Request) {
+	newPage := &Page{Title: "Title", Body: []byte("Enter text here...")}
+	t, _ := template.ParseFiles("templates/new.html")
+	t.Execute(w, newPage)
+}
+
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "home", nil)
+}
+
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	fmt.Printf("%s: %s\n", tmpl, p.Title)
+	var title string
+	if p != nil {
+		title = p.Title
+	} else {
+		title = "Home"
+	}
+	fmt.Printf("%s: %s\n", tmpl, title)
 	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
 		fmt.Printf("Render Failed: %s\n", err.Error())
@@ -82,6 +113,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
 	m := validPath.FindStringSubmatch(r.URL.Path)
 	if m == nil {
+		fmt.Printf("Invalid Path: %s\n", r.URL.Path)
 		http.NotFound(w, r)
 		return "", errors.New("Invalid Page Title")
 	}
@@ -91,6 +123,9 @@ func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
 func main() {
 	http.HandleFunc("/view/", viewHandler)
 	http.HandleFunc("/edit/", editHandler)
+	http.HandleFunc("/edit/new", newHandler)
 	http.HandleFunc("/save/", saveHandler)
+	http.HandleFunc("/create/", createHandler)
+	http.HandleFunc("/", homeHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

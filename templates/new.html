@@ -1,0 +1,7 @@
+<h1>Editing {{.Title}}</h1>
+
+<form action="/create/{{.Title}}" method="POST"  enctype="multipart/form-data">
+<div><input value="{{.Title}}" name="title"></div>
+<div><textarea name="body" rows="20" cols="80">Enter text here...</textarea></div>
+<div><button type="submit">Save</button></div>
+</form>
