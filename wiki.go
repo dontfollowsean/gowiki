@@ -54,7 +54,9 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 	saveErr := p.save()
 	http.Redirect(w, r, "/view/"+title, http.StatusFound)
 	if saveErr != nil {
-		fmt.Printf("Save Failed: %s\n", saveErr)
+		fmt.Printf("Save Failed: %s\n", saveErr.Error())
+		http.Error(w, saveErr.Error(), http.StatusInternalServerError)
+		return
 	}
 	fmt.Printf("save: %s\n", p.Title)
 }
@@ -64,6 +66,7 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	t, err := template.ParseFiles("templates/" + tmpl + ".html")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Printf("Render Failed: %s\n", err.Error())
 		return
 	}
 	err = t.Execute(w, p)
